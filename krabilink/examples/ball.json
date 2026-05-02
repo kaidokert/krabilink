@@ -1,0 +1,223 @@
+{
+    "components": [
+        {
+            "component_id": "constant_gravity",
+            "component_type": "Constant",
+            "name": "Gravitational acceleration",
+            "parameters": {
+                "value": -9.81
+            }
+        },
+        {
+            "component_id": "constant_zero",
+            "component_type": "Constant",
+            "name": "Zero",
+            "parameters": {
+                "value": 0
+            }
+        },
+        {
+            "component_id": "gain_restitution",
+            "component_type": "Gain",
+            "name": "Coefficient of restitution",
+            "parameters": {
+                "value": -0.8
+            }
+        },
+        {
+            "component_id": "initial_velocity",
+            "component_type": "InitialCondition",
+            "name": "Initial Velocity",
+            "parameters": {
+                "value": 0
+            }
+        },
+        {
+            "component_id": "initial_position",
+            "component_type": "InitialCondition",
+            "name": "Initial Position",
+            "parameters": {
+                "value": 25
+            }
+        },
+        {
+            "component_id": "integrator_velocity",
+            "component_type": "Integrator",
+            "name": "Velocity",
+            "parameters": {}
+        },
+        {
+            "component_id": "integrator_position",
+            "component_type": "Integrator",
+            "name": "Position",
+            "parameters": {
+                "output_lower_saturation_limit": 0
+            }
+        },
+        {
+            "component_id": "boolean_comparator",
+            "component_type": "Comparator",
+            "name": "Compare to zero",
+            "parameters": {
+                "operand": "<="
+            }
+        },
+        {
+            "component_id": "log",
+            "component_type": "Scope",
+            "name": "Log Position",
+            "parameters": {}
+        },
+        {
+            "component_id": "log_velocity",
+            "component_type": "Scope",
+            "name": "Log Velocity",
+            "parameters": {}
+        }
+    ],
+    "connections": [
+        {
+            "name": "Velocity",
+            "from": {
+                "component": "integrator_velocity",
+                "out_port": 0
+            },
+            "to": {
+                "component": "integrator_position",
+                "in_port": 0
+            }
+        },
+        {
+            "name": "one",
+            "from": {
+                "component": "constant_gravity",
+                "out_port": 0
+            },
+            "to": {
+                "component": "integrator_velocity",
+                "in_port": 0
+            }
+        },
+        {
+            "name": "two",
+            "from": {
+                "component": "integrator_position",
+                "out_port": 1
+            },
+            "to": {
+                "component": "boolean_comparator",
+                "in_port": 0
+            }
+        },
+        {
+            "name": "three",
+            "from": {
+                "component": "initial_position",
+                "out_port": 0
+            },
+            "to": {
+                "component": "integrator_position",
+                "in_port": 2
+            }
+        },
+        {
+            "name": "four_split_1",
+            "from": {
+                "component": "boolean_comparator",
+                "out_port": 0
+            },
+            "to": {
+                "component": "integrator_velocity",
+                "in_port": 1
+            }
+        },
+        {
+            "name": "four_split_2",
+            "from": {
+                "component": "boolean_comparator",
+                "out_port": 0
+            },
+            "to": {
+                "component": "integrator_position",
+                "in_port": 1
+            }
+        },
+        {
+            "name": "six",
+            "from": {
+                "component": "integrator_velocity",
+                "out_port": 1
+            },
+            "to": {
+                "component": "gain_restitution",
+                "in_port": 0
+            }
+        },
+        {
+            "name": "seven",
+            "from": {
+                "component": "gain_restitution",
+                "out_port": 0
+            },
+            "to": {
+                "component": "initial_velocity",
+                "in_port": 0
+            }
+        },
+        {
+            "name": "eight",
+            "from": {
+                "component": "initial_velocity",
+                "out_port": 0
+            },
+            "to": {
+                "component": "integrator_velocity",
+                "in_port": 2
+            }
+        },
+        {
+            "name": "ten",
+            "from": {
+                "component": "constant_zero",
+                "out_port": 0
+            },
+            "to": {
+                "component": "boolean_comparator",
+                "in_port": 1
+            }
+        },
+        {
+            "name" : "Position",
+            "from" : {
+                "component" : "integrator_position",
+                "out_port" : 0
+            },
+            "to" : {
+                "component" : "log",
+                "in_port" : 0
+            }
+        },
+        {
+            "name" : "zero_the_position_initial_condition",
+            "from" : {
+                "component" : "constant_zero",
+                "out_port" : 0
+            },
+            "to" : {
+                "component" : "initial_position",
+                "in_port" : 0
+            }
+        },
+        {
+            "name" : "log_velocity",
+            "from" : {
+                "component" : "integrator_velocity",
+                "out_port" : 0
+            },
+            "to" : {
+                "component" : "log_velocity",
+                "in_port" : 0
+            }
+        }
+    ]
+}
