@@ -5,14 +5,14 @@ use super::{Component, Port};
 struct IntegratorInternalState {
     accumulator: f32,
     reset_state: bool,
-    previous_reset_state: bool,
+    previous_reset_state: Option<bool>,
 }
 impl Default for IntegratorInternalState {
     fn default() -> Self {
         Self {
             accumulator: 0.0,
             reset_state: false,
-            previous_reset_state: true,
+            previous_reset_state: None,
         }
     }
 }
@@ -86,13 +86,17 @@ impl<'a> Component<'a> for Integrator<'a> {
     fn action(&mut self, delta_time: f32) {
         if let Some(input_external_reset) = self.ports.inputs[1] {
             let bool_reset = input_external_reset.get() > FLOAT_ZERO_THRESHOLD;
-            let prev = self.internal_state.previous_reset_state;
-            let should_reset = match self.external_reset {
-                ExternalResetTrigger::None => false,
-                ExternalResetTrigger::Rising => bool_reset && !prev,
-                ExternalResetTrigger::Falling => !bool_reset && prev,
-                ExternalResetTrigger::Either => bool_reset != prev,
-                ExternalResetTrigger::Level => bool_reset,
+            let should_reset = if let Some(prev) = self.internal_state.previous_reset_state {
+                match self.external_reset {
+                    ExternalResetTrigger::None => false,
+                    ExternalResetTrigger::Rising => bool_reset && !prev,
+                    ExternalResetTrigger::Falling => !bool_reset && prev,
+                    ExternalResetTrigger::Either => bool_reset != prev,
+                    ExternalResetTrigger::Level => bool_reset,
+                }
+            } else {
+                // First sample: initialize state, no edge detection
+                false
             };
             self.internal_state.reset_state = bool_reset;
             if should_reset {
@@ -105,11 +109,11 @@ impl<'a> Component<'a> for Integrator<'a> {
             }
         } else {
             // we are using internal reset
-            if self.internal_state.reset_state != self.internal_state.previous_reset_state {
+            if Some(self.internal_state.reset_state) != self.internal_state.previous_reset_state {
                 self.internal_state.accumulator = self.initial_condition;
             }
         }
-        self.internal_state.previous_reset_state = self.internal_state.reset_state;
+        self.internal_state.previous_reset_state = Some(self.internal_state.reset_state);
 
         // TODO: Forward Euler integration; consider Heun or RK4 for stability
         let input_value = self.ports.inputs[0].map(|p| p.get()).unwrap_or(0.0);
