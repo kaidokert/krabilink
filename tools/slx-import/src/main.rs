@@ -63,9 +63,14 @@ fn scan_examples(root_dir: &str) {
         println!("{}", file.display());
         // This should be relative to root
         let root = Path::new(&root2);
-        let relative = file.strip_prefix(root).unwrap().parent().unwrap();
-        let content = std::fs::read_to_string(&file).unwrap();
-        let doc: Examples = from_str(&content).unwrap();
+        let relative = file.strip_prefix(root)
+            .expect(&format!("Failed to strip prefix from {}", file.display()))
+            .parent()
+            .expect(&format!("No parent dir for {}", file.display()));
+        let content = std::fs::read_to_string(&file)
+            .expect(&format!("Failed to read {}", file.display()));
+        let doc: Examples = from_str(&content)
+            .expect(&format!("Failed to parse XML in {}", file.display()));
         for demo in &doc.demos {
             for item in &demo.items {
                 match item {
@@ -120,16 +125,21 @@ fn list_examples(root_dir: &str) {
     }
     for file in files {
         println!("{}", file.display());
-        let file = std::fs::File::open(&file).unwrap();
-        list_zip_contents(&file).unwrap();
+        let opened = std::fs::File::open(&file)
+            .expect(&format!("Failed to open {}", file.display()));
+        list_zip_contents(&opened)
+            .expect(&format!("Failed to read ZIP {}", file.display()));
     }
 }
 
 fn main() {
     let args = Args::parse();
-    let root_dir = args
-        .root_dir
-        .unwrap_or(r"C:\Users\kaido\Documents\MATLAB\Examples\R2024b".to_string());
+    let root_dir = args.root_dir.unwrap_or_else(|| {
+        std::env::var("MATLAB_EXAMPLES").unwrap_or_else(|_| {
+            let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
+            user_profile + "/Documents/MATLAB/Examples/R2024b"
+        })
+    });
 
     if args.mode == Mode::Scan {
         scan_examples(&root_dir);
