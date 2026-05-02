@@ -1,0 +1,14 @@
+[package]
+name = "krabilink"
+version = "0.1.0"
+edition = "2021"
+description = "A Simulink-like block diagram simulation engine with no_alloc support"
+license = "Apache-2.0"
+
+[dependencies]
+clap = { version = "4.5.26", features = ["derive"] }
+env_logger = "0.11.6"
+heapless = { version = "0.8.0", features = ["serde"] }
+log = "0.4.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }

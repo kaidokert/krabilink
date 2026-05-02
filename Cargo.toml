@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "krabilink",
+    "tools/slx-import",
+]
+resolver = "2"
