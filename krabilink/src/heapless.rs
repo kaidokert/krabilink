@@ -10,6 +10,15 @@ use super::connection;
 
 use enum_dispatch::AllComponents;
 
+#[derive(Debug)]
+pub enum LoadErr {
+    JsonError,
+    ComponentCreateError(String),
+    CapacityError,
+    PortTargetNotFound(PortId, String),
+    PortConnectionError(PortId, String),
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Chart<const N: usize, const M: usize> {
     pub components: Vec<component::ComponentDeserializeHelper, N>,
@@ -30,8 +39,8 @@ impl<'a, const N: usize> ComponentList<'a, N> {
 pub fn load_chart<'a, const N: usize, const M: usize>(
     json: &str,
     ports: &'a mut Vec<Port, M>,
-) -> Result<ComponentList<'a, N>, u8> {
-    let chart: Chart<N, M> = serde_json::from_str(json).map_err(|_| 1u8)?;
+) -> Result<ComponentList<'a, N>, LoadErr> {
+    let chart: Chart<N, M> = serde_json::from_str(json).map_err(|_| LoadErr::JsonError)?;
     let num_connections = chart.connections.len();
     log::info!("Number of connections: {}", num_connections);
     ports.clear();
@@ -43,20 +52,20 @@ pub fn load_chart<'a, const N: usize, const M: usize>(
 pub fn load_and_resolve_chart<'a, const N: usize, const M: usize>(
     chart: Chart<N, M>,
     ports: &'a [Port],
-) -> Result<ComponentList<'a, N>, u8> {
+) -> Result<ComponentList<'a, N>, LoadErr> {
     let mut component_list = ComponentList::<'a>::new();
     for component_def in chart.components {
         let id = component_def.config.component_id.clone();
         log::debug!("Loading component {}", id);
         let param_def = component_def
-            .params
+            .parameters
             .unwrap_or_else(|| serde_json::Value::Object(Default::default()));
         let comp = AllComponents::from_json(&component_def.config.component_type, param_def)
-            .map_err(|_| 7u8)?;
+            .map_err(|_| LoadErr::ComponentCreateError(id.clone()))?;
         component_list
             .components
             .push((comp, id))
-            .map_err(|_| 2u8)?;
+            .map_err(|_| LoadErr::CapacityError)?;
     }
 
     for (i, connection) in chart.connections.iter().enumerate() {
@@ -70,9 +79,9 @@ pub fn load_and_resolve_chart<'a, const N: usize, const M: usize>(
             .find(|(_, id)| id == &connection.from.component);
         if let Some((ref mut comp, _)) = found_from {
             comp.connect_output(from_port_id, &ports[i])
-                .map_err(|_| 3u8)?;
+                .map_err(|_| LoadErr::PortConnectionError(from_port_id, connection.from.component.clone()))?;
         } else {
-            return Err(4);
+            return Err(LoadErr::PortTargetNotFound(from_port_id, connection.from.component.clone()));
         }
 
         let found_to = component_list
@@ -81,9 +90,9 @@ pub fn load_and_resolve_chart<'a, const N: usize, const M: usize>(
             .find(|(_, id)| id == &connection.to.component);
         if let Some((ref mut comp, _)) = found_to {
             comp.connect_input(to_port_id, &ports[i])
-                .map_err(|_| 5u8)?;
+                .map_err(|_| LoadErr::PortConnectionError(to_port_id, connection.to.component.clone()))?;
         } else {
-            return Err(6);
+            return Err(LoadErr::PortTargetNotFound(to_port_id, connection.to.component.clone()));
         }
     }
 

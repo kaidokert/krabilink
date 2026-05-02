@@ -24,7 +24,7 @@ impl<'a> ComponentList<'a> {
 #[derive(Debug)]
 pub enum LoadErr {
     JsonError(serde_json::Error),
-    LoadError(u8),
+    LoadError(usize),
     UnknownComponent(String),
     ComponentCreateError(String, serde_json::Error),
     PortTargetNotFound(PortId, String),
@@ -37,8 +37,8 @@ impl From<serde_json::Error> for LoadErr {
     }
 }
 
-impl From<u8> for LoadErr {
-    fn from(error: u8) -> Self {
+impl From<usize> for LoadErr {
+    fn from(error: usize) -> Self {
         Self::LoadError(error)
     }
 }
@@ -59,7 +59,7 @@ pub fn load_and_resolve_chart<'a>(
 ) -> Result<ComponentList<'a>, LoadErr> {
     if ports.len() < chart.connections.len() {
         return Err(LoadErr::LoadError(
-            chart.connections.len() as u8,
+            chart.connections.len(),
         ));
     }
     let factory_registry = dyn_dispatch::initialize_component_factories::<'a>();
@@ -75,7 +75,7 @@ pub fn load_and_resolve_chart<'a>(
                 component_def.config.component_type,
             ))?;
 
-        let param_def = component_def.params.unwrap_or_default();
+        let param_def = component_def.parameters.unwrap_or_default();
         let component = (factory.1)(param_def).map_err(|e| {
             LoadErr::ComponentCreateError(id.clone(), e)
         })?;
@@ -134,6 +134,8 @@ pub fn load_and_resolve_chart<'a>(
     Ok(component_list)
 }
 
+// TODO: components execute in insertion order; topological sort by signal
+// dependencies would eliminate artificial one-step delays
 pub fn run_simulation(chart: &mut ComponentList, dt: f32, num_steps: usize) {
     for i in 0..num_steps {
         log::warn!("\n---- Step: {} time: {} --- \n", i, i as f32 * dt);

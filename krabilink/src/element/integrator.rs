@@ -108,6 +108,7 @@ impl<'a> Component<'a> for Integrator<'a> {
         }
         self.internal_state.previous_reset_state = self.internal_state.reset_state;
 
+        // TODO: Forward Euler integration; consider Heun or RK4 for stability
         let input_value = self.ports.inputs[0].map(|p| p.get()).unwrap_or(0.0);
         self.internal_state.accumulator += input_value * delta_time;
         if let Some(non_reset_output) = self.ports.outputs[1] {
