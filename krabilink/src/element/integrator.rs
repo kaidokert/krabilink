@@ -17,7 +17,8 @@ impl Default for IntegratorInternalState {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ExternalResetTrigger {
     None,
     Rising,
@@ -29,23 +30,6 @@ pub enum ExternalResetTrigger {
 impl Default for ExternalResetTrigger {
     fn default() -> Self {
         Self::None
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for ExternalResetTrigger {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        match s.as_str() {
-            "none" => Ok(ExternalResetTrigger::None),
-            "rising" => Ok(ExternalResetTrigger::Rising),
-            "falling" => Ok(ExternalResetTrigger::Falling),
-            "either" => Ok(ExternalResetTrigger::Either),
-            "level" => Ok(ExternalResetTrigger::Level),
-            _ => Err(serde::de::Error::custom("Invalid operand")),
-        }
     }
 }
 

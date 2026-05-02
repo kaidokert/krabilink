@@ -1,32 +1,20 @@
 use super::ComponentPorts;
 use super::{Component, Port};
 
-#[derive(Debug)]
+#[derive(Debug, serde::Deserialize)]
 pub enum Operand {
+    #[serde(rename = "==")]
     Equal,
+    #[serde(rename = "~=")]
     NotEqual,
+    #[serde(rename = "<")]
     LessThan,
+    #[serde(rename = ">")]
     GreaterThan,
+    #[serde(rename = "<=")]
     LessThanOrEqual,
+    #[serde(rename = ">=")]
     GreaterThanOrEqual,
-}
-
-impl<'de> serde::Deserialize<'de> for Operand {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        match s.as_str() {
-            "==" => Ok(Operand::Equal),
-            "~=" => Ok(Operand::NotEqual),
-            "<" => Ok(Operand::LessThan),
-            ">" => Ok(Operand::GreaterThan),
-            "<=" => Ok(Operand::LessThanOrEqual),
-            ">=" => Ok(Operand::GreaterThanOrEqual),
-            _ => Err(serde::de::Error::custom("Invalid operand")),
-        }
-    }
 }
 
 #[derive(Debug, serde::Deserialize)]
