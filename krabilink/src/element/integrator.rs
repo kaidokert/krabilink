@@ -85,6 +85,7 @@ impl<'a> Integrator<'a> {
     }
 }
 
+// TODO: 0.01 is coarse for a general-purpose simulation, revisit threshold
 const FLOAT_ZERO_THRESHOLD: f32 = 0.01;
 
 impl<'a> Component<'a> for Integrator<'a> {
