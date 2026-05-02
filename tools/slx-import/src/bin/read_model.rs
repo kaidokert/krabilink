@@ -225,7 +225,7 @@ fn list_blocks(doc: &System, mode: Mode, blocks: &mut HashMap<String, u32>) -> R
                                 _ => None,
                             })
                             .nth(0)
-                            .unwrap();
+                            .expect(&format!("Reference block '{}' has no SourceBlock param", sanitize(&b.name)));
                         ref_is_known = match sanitize(sb.as_str()).as_str() {
                             "simulink/Logic and Bit Operations/Compare To Zero" => true,
                             "simulink/Logic and Bit Operations/Bitwise Operator" => true,
@@ -617,15 +617,18 @@ fn main() -> Result<(), String> {
 
     for zip_file in &zip_files {
         log::debug!("Processing zip file: {}", zip_file);
-        let mut zip = zip::ZipArchive::new(std::fs::File::open(zip_file).unwrap()).unwrap();
+        let mut zip = zip::ZipArchive::new(
+            std::fs::File::open(zip_file).expect(&format!("Failed to open ZIP: {}", zip_file)),
+        )
+        .expect(&format!("Failed to read ZIP archive: {}", zip_file));
         for i in 0..zip.len() {
-            let mut file = zip.by_index(i).unwrap();
+            let mut file = zip.by_index(i).expect(&format!("Failed to read ZIP entry {} in {}", i, zip_file));
             // only if file path contains /simulink/systems/ and ends with .xml
             if file.name().contains("simulink/systems/") && file.name().ends_with(".xml") {
                 log::debug!("Reading zip file: {}", file.name());
 
                 let mut content = String::new();
-                file.read_to_string(&mut content).unwrap();
+                file.read_to_string(&mut content).expect(&format!("Failed to read {} from ZIP", file.name()));
                 let tmp = zip_file.clone() + "/" + file.name();
                 if args.mode == Mode::ListFilesWithKnownBlocks {
                     if file.name().ends_with("/system_root.xml") {
@@ -644,7 +647,7 @@ fn main() -> Result<(), String> {
         }
     }
     for file in files {
-        let content = std::fs::read_to_string(&file).unwrap();
+        let content = std::fs::read_to_string(&file).expect(&format!("Failed to read file: {}", file));
         process_content(&content, &file, args.mode, &mut blocks)?;
     }
     match args.mode {

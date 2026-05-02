@@ -73,11 +73,17 @@ const KNOWN_BLOCKS: [&str; 20] = [
 fn load_library(path_prefix: String, slx_file_path: String) -> Option<CompleteModel> {
     let mut model = CompleteModel::new();
     log::debug!("file: {}", slx_file_path);
-    let mut zip = zip::ZipArchive::new(std::fs::File::open(slx_file_path).unwrap()).unwrap();
+    let mut zip = zip::ZipArchive::new(
+        std::fs::File::open(&slx_file_path).expect(&format!("Failed to open file: {}", slx_file_path)),
+    )
+    .expect(&format!("Failed to read ZIP archive: {}", slx_file_path));
     let sysref = {
-        let mut file = zip.by_name("simulink/blockdiagram.xml").unwrap();
+        let mut file = zip
+            .by_name("simulink/blockdiagram.xml")
+            .expect("ZIP missing simulink/blockdiagram.xml");
         let mut content = String::new();
-        file.read_to_string(&mut content).unwrap();
+        file.read_to_string(&mut content)
+            .expect("Failed to read blockdiagram.xml from ZIP");
         let model_info: Result<ModelInformation, serde_xml_rs::Error> =
             serde_xml_rs::from_str(&content);
         if model_info.is_err() {
@@ -103,7 +109,7 @@ fn load_library(path_prefix: String, slx_file_path: String) -> Option<CompleteMo
             inner_sysref
         } else {
             if model_sysref.is_some() {
-                model_sysref.unwrap()
+                model_sysref.expect("model_sysref was None after is_some check")
             } else {
                 log::error!("This isn't a model or a library file");
                 return None;
@@ -114,12 +120,15 @@ fn load_library(path_prefix: String, slx_file_path: String) -> Option<CompleteMo
     let mut sysrefs = vec![(sysref, path_prefix)];
 
     while let Some((sysref, path)) = sysrefs.pop() {
+        let sys_path = format!("simulink/systems/{}.xml", sysref);
         let mut file = zip
-            .by_name(&format!("simulink/systems/{}.xml", sysref))
-            .unwrap();
+            .by_name(&sys_path)
+            .expect(&format!("ZIP missing {}", sys_path));
         let mut content = String::new();
-        file.read_to_string(&mut content).unwrap();
-        let sys = serde_xml_rs::from_str::<System>(&content).unwrap();
+        file.read_to_string(&mut content)
+            .expect(&format!("Failed to read {} from ZIP", sys_path));
+        let sys = serde_xml_rs::from_str::<System>(&content)
+            .expect(&format!("Failed to parse XML in {}", sys_path));
         let subsys = SubSystem::new(sysref, sys);
 
         for item in subsys.system.items.iter().filter(|item| match item {
@@ -210,8 +219,11 @@ fn check_for_known_blocks(
                                                 ref_p.value
                                             );
                                             // First part before slash is the ref_model key
-                                            let ref_model_key =
-                                                ref_p.value.split('/').nth(0).unwrap();
+                                            let ref_model_key = ref_p
+                                                .value
+                                                .split('/')
+                                                .nth(0)
+                                                .expect(&format!("No '/' in SourceBlock value: {}", ref_p.value));
                                             // we need to find ref_p.value in reference_models
                                             let ref_model =
                                                 reference_models.iter().find_map(|(key, model)| {
@@ -279,7 +291,7 @@ fn load_library_model(filename: String) -> CompleteModel {
     let simulink_blocks_dir = matlab + "/MATLAB/R2024b/toolbox/simulink/blocks/library";
     let slx_file_path = simulink_blocks_dir.clone() + "/" + &filename + ".slx";
     let simulink_model = load_library(filename.to_string(), slx_file_path);
-    simulink_model.unwrap()
+    simulink_model.expect(&format!("Failed to load library model: {}", filename))
 }
 
 fn main() -> Result<(), String> {
@@ -323,9 +335,9 @@ fn main() -> Result<(), String> {
 
     for file in files {
         // figure out basename for file
-        let basename = file.split('/').last().unwrap();
+        let basename = file.split('/').last().expect(&format!("No basename in path: {}", file));
         // remove .slx
-        let basename = basename.split('.').nth(0).unwrap();
+        let basename = basename.split('.').nth(0).expect(&format!("No extension in: {}", basename));
         let model = load_library(basename.to_string(), file.clone());
         if let Some(model) = model {
             check_for_known_blocks(&file, &model, &models);

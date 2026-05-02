@@ -14,12 +14,6 @@ pub enum AllComponents<'a> {
     Integrator(Integrator<'a>),
     Saturate(Saturate<'a>),
     Scope(Scope<'a>),
-    Empty,
-}
-impl<'a> Default for AllComponents<'a> {
-    fn default() -> Self {
-        AllComponents::Empty
-    }
 }
 
 impl<'a> AllComponents<'a> {
@@ -37,16 +31,16 @@ impl<'a> AllComponents<'a> {
             _ => Err(serde::de::Error::custom("Invalid component")),
         }
     }
-    pub fn from_string(s: &str) -> Self {
+    pub fn from_string(s: &str) -> Result<Self, ()> {
         match s {
-            "Comparator" => AllComponents::Comparator(Comparator::default()),
-            "Constant" => AllComponents::Constant(Constant::default()),
-            "Gain" => AllComponents::Gain(Gain::default()),
-            "InitialCondition" => AllComponents::InitialCondition(InitialCondition::default()),
-            "Integrator" => AllComponents::Integrator(Integrator::default()),
-            "Saturate" => AllComponents::Saturate(Saturate::default()),
-            "Scope" => AllComponents::Scope(Scope::default()),
-            _ => AllComponents::Empty,
+            "Comparator" => Ok(AllComponents::Comparator(Comparator::default())),
+            "Constant" => Ok(AllComponents::Constant(Constant::default())),
+            "Gain" => Ok(AllComponents::Gain(Gain::default())),
+            "InitialCondition" => Ok(AllComponents::InitialCondition(InitialCondition::default())),
+            "Integrator" => Ok(AllComponents::Integrator(Integrator::default())),
+            "Saturate" => Ok(AllComponents::Saturate(Saturate::default())),
+            "Scope" => Ok(AllComponents::Scope(Scope::default())),
+            _ => Err(()),
         }
     }
 }
@@ -73,7 +67,6 @@ impl<'a> AllComponents<'a> {
             AllComponents::Integrator(c) => c,
             AllComponents::Saturate(c) => c,
             AllComponents::Scope(c) => c,
-            AllComponents::Empty => panic!("Not a component"),
         }
     }
     fn as_component_mut(&mut self) -> &mut (dyn Component<'a> + 'a) {
@@ -85,7 +78,6 @@ impl<'a> AllComponents<'a> {
             AllComponents::Integrator(c) => c,
             AllComponents::Saturate(c) => c,
             AllComponents::Scope(c) => c,
-            AllComponents::Empty => panic!("Not a component"),
         }
     }
 }
@@ -100,8 +92,8 @@ mod tests {
         let some_ports = [Port::default(), Port::default()];
 
         let mut components = [
-            AllComponents::from_string("Constant"),
-            AllComponents::from_string("Gain"),
+            AllComponents::from_string("Constant").unwrap(),
+            AllComponents::from_string("Gain").unwrap(),
         ];
         (*components[0])
             .connect_output(PortId(0), &some_ports[0])
