@@ -51,6 +51,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     env_logger::Builder::new().filter_level(log_level).init();
 
+    if args.dt <= 0.0 {
+        return Err("dt must be positive".into());
+    }
     // Calculate number of steps based on duration and timestep
     let num_steps = (args.duration / args.dt).ceil() as usize;
 

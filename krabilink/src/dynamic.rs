@@ -26,6 +26,7 @@ pub enum LoadErr {
     JsonError(serde_json::Error),
     LoadError(u8),
     UnknownComponent(String),
+    ComponentCreateError(String, serde_json::Error),
     PortTargetNotFound(PortId, String),
     PortConnectionError(PortId, String),
 }
@@ -56,6 +57,11 @@ pub fn load_and_resolve_chart<'a>(
     chart: Chart,
     ports: &'a [Port], // Changed to immutable reference since we use Cell
 ) -> Result<ComponentList<'a>, LoadErr> {
+    if ports.len() < chart.connections.len() {
+        return Err(LoadErr::LoadError(
+            chart.connections.len() as u8,
+        ));
+    }
     let factory_registry = dyn_dispatch::initialize_component_factories::<'a>();
 
     let mut component_list = ComponentList::<'a>::new();
@@ -70,13 +76,27 @@ pub fn load_and_resolve_chart<'a>(
             ))?;
 
         let param_def = component_def.params.unwrap_or_default();
-        let component = (factory.1)(param_def).map_err(|_| 1)?;
+        let component = (factory.1)(param_def).map_err(|e| {
+            LoadErr::ComponentCreateError(id.clone(), e)
+        })?;
         component_list.components.push((component, id));
     }
 
     // Iterate and call connect_input and connect_output
     for (i, connection) in chart.connections.iter().enumerate() {
         log::info!("Connection: {:?}", connection.name);
+        if connection.from.out_port < 0 {
+            return Err(LoadErr::PortConnectionError(
+                PortId(0),
+                format!("{}: negative out_port {}", connection.from.component, connection.from.out_port),
+            ));
+        }
+        if connection.to.in_port < 0 {
+            return Err(LoadErr::PortConnectionError(
+                PortId(0),
+                format!("{}: negative in_port {}", connection.to.component, connection.to.in_port),
+            ));
+        }
         let from_port_id = PortId(connection.from.out_port as usize);
         let to_port_id = PortId(connection.to.in_port as usize);
         let found_from = component_list

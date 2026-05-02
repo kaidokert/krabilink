@@ -69,8 +69,8 @@ impl<'a> Component<'a> for Comparator<'a> {
             }
         }
 
-        let a = self.ports.inputs[0].unwrap().get();
-        let b = self.ports.inputs[1].unwrap().get();
+        let a = self.ports.inputs[0].map(|p| p.get()).unwrap_or(0.0);
+        let b = self.ports.inputs[1].map(|p| p.get()).unwrap_or(0.0);
         let bool_res = match self.operand {
             Operand::Equal => a == b,
             Operand::NotEqual => a != b,
@@ -79,7 +79,9 @@ impl<'a> Component<'a> for Comparator<'a> {
             Operand::LessThanOrEqual => a <= b,
             Operand::GreaterThanOrEqual => a >= b,
         };
-        self.ports.outputs[0].unwrap().set(bool_to_f32(bool_res));
+        if let Some(output) = self.ports.outputs[0] {
+            output.set(bool_to_f32(bool_res));
+        }
     }
 }
 

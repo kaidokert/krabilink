@@ -31,7 +31,7 @@ pub fn load_chart<'a, const N: usize, const M: usize>(
     json: &str,
     ports: &'a mut Vec<Port, M>,
 ) -> Result<ComponentList<'a, N>, u8> {
-    let chart: Chart<N, M> = serde_json::from_str(json).unwrap();
+    let chart: Chart<N, M> = serde_json::from_str(json).map_err(|_| 1u8)?;
     let num_connections = chart.connections.len();
     log::info!("Number of connections: {}", num_connections);
     ports.clear();
@@ -51,8 +51,8 @@ pub fn load_and_resolve_chart<'a, const N: usize, const M: usize>(
         let param_def = component_def
             .params
             .unwrap_or_else(|| serde_json::Value::Object(Default::default()));
-        let comp =
-            AllComponents::from_json(&component_def.config.component_type, param_def).unwrap();
+        let comp = AllComponents::from_json(&component_def.config.component_type, param_def)
+            .map_err(|_| 7u8)?;
         component_list
             .components
             .push((comp, id))

@@ -21,7 +21,7 @@ impl<'a> Component<'a> for Scope<'a> {
     }
 
     fn action(&mut self, _delta_time: f32) {
-        let input_value = self.ports.inputs[0].unwrap().get();
+        let input_value = self.ports.inputs[0].map(|p| p.get()).unwrap_or(0.0);
         log::info!("Scope: {}", input_value);
     }
 }

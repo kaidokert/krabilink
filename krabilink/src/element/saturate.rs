@@ -36,9 +36,11 @@ impl<'a> Component<'a> for Saturate<'a> {
     }
 
     fn action(&mut self, _delta_time: f32) {
-        let input_value = self.ports.inputs[0].unwrap().get();
+        let input_value = self.ports.inputs[0].map(|p| p.get()).unwrap_or(0.0);
         let output_value = input_value.clamp(self.lower_limit, self.upper_limit);
-        self.ports.outputs[0].unwrap().set(output_value);
+        if let Some(output) = self.ports.outputs[0] {
+            output.set(output_value);
+        }
     }
 }
 

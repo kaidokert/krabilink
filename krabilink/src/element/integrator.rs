@@ -98,8 +98,16 @@ impl<'a> Component<'a> for Integrator<'a> {
     fn action(&mut self, delta_time: f32) {
         if let Some(input_external_reset) = self.ports.inputs[1] {
             let bool_reset = input_external_reset.get() > FLOAT_ZERO_THRESHOLD;
+            let prev = self.internal_state.previous_reset_state;
+            let should_reset = match self.external_reset {
+                ExternalResetTrigger::None => false,
+                ExternalResetTrigger::Rising => bool_reset && !prev,
+                ExternalResetTrigger::Falling => !bool_reset && prev,
+                ExternalResetTrigger::Either => bool_reset != prev,
+                ExternalResetTrigger::Level => bool_reset,
+            };
             self.internal_state.reset_state = bool_reset;
-            if bool_reset != self.internal_state.previous_reset_state {
+            if should_reset {
                 log::warn!("Reset state changed");
                 if let Some(input_initial_condition) = self.ports.inputs[2] {
                     self.internal_state.accumulator = input_initial_condition.get();
@@ -115,7 +123,7 @@ impl<'a> Component<'a> for Integrator<'a> {
         }
         self.internal_state.previous_reset_state = self.internal_state.reset_state;
 
-        let input_value = self.ports.inputs[0].unwrap().get();
+        let input_value = self.ports.inputs[0].map(|p| p.get()).unwrap_or(0.0);
         self.internal_state.accumulator += input_value * delta_time;
         if let Some(non_reset_output) = self.ports.outputs[1] {
             non_reset_output.set(self.internal_state.accumulator);
@@ -131,9 +139,9 @@ impl<'a> Component<'a> for Integrator<'a> {
                 self.internal_state.accumulator = upper_limit;
             }
         }
-        self.ports.outputs[0]
-            .unwrap()
-            .set(self.internal_state.accumulator);
+        if let Some(output) = self.ports.outputs[0] {
+            output.set(self.internal_state.accumulator);
+        }
     }
 }
 

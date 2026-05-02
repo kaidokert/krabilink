@@ -37,12 +37,14 @@ impl<'a> Component<'a> for InitialCondition<'a> {
 
     fn action(&mut self, _delta_time: f32) {
         let send_value = if self.initial_value_sent {
-            self.ports.inputs[0].unwrap().get()
+            self.ports.inputs[0].map(|p| p.get()).unwrap_or(0.0)
         } else {
             self.initial_value_sent = true;
             self.value
         };
-        self.ports.outputs[0].unwrap().set(send_value);
+        if let Some(output) = self.ports.outputs[0] {
+            output.set(send_value);
+        }
     }
 }
 
