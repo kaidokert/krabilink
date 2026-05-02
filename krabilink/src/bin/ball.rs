@@ -58,12 +58,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let num_steps = (args.duration / args.dt).ceil() as usize;
 
     let file_name = args.file.unwrap_or("ball.json".to_string());
-    let mut file = File::open(file_name).expect("Failed to open config file");
+    let mut file = File::open(&file_name)?;
     let mut buf = String::new();
     file.read_to_string(&mut buf)?;
 
     let mut ports = Vec::new();
-    let mut chart = load_chart(&buf, &mut ports).unwrap();
+    let mut chart = load_chart(&buf, &mut ports)?;
 
     run_simulation(&mut chart, args.dt, num_steps);
 

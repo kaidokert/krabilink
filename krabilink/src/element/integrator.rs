@@ -67,6 +67,9 @@ impl<'a> Integrator<'a> {
     fn set_initial_condition(&mut self, value: f32) {
         self.initial_condition = value;
     }
+    fn set_external_reset(&mut self, trigger: ExternalResetTrigger) {
+        self.external_reset = trigger;
+    }
 }
 
 // TODO: 0.01 is coarse for a general-purpose simulation, revisit threshold
@@ -196,12 +199,31 @@ mod tests {
     #[test]
     fn test_external_reset() {
         let mut integrator = Integrator::default();
-        integrator.set_initial_condition(1.0);
+        integrator.set_external_reset(ExternalResetTrigger::Rising);
+        integrator.set_initial_condition(5.0);
+        // ports[0] = main input, ports[1] = reset signal, ports[2] = output
         let ports = [Port::new(0.0), Port::new(0.0), Port::new(0.0)];
         integrator.connect_input(PortId(0), &ports[0]).unwrap();
-        integrator.connect_input(PortId(0), &ports[1]).unwrap();
+        integrator.connect_input(PortId(1), &ports[1]).unwrap();
         integrator.connect_output(PortId(0), &ports[2]).unwrap();
+
+        // Step with no input, no reset — accumulator starts at 0
         integrator.action(1.0);
-        assert_eq!(ports[1].get(), 0.0);
+        assert_eq!(ports[2].get(), 0.0);
+
+        // Accumulate: input=2.0, no reset
+        ports[0].set(2.0);
+        integrator.action(1.0);
+        assert_eq!(ports[2].get(), 2.0);
+
+        // Trigger rising edge reset (0 -> 1)
+        ports[1].set(1.0);
+        integrator.action(1.0);
+        // Reset to initial_condition (5.0), then accumulate input (2.0*1.0)
+        assert_eq!(ports[2].get(), 7.0);
+
+        // No rising edge (1 -> 1), just accumulate
+        integrator.action(1.0);
+        assert_eq!(ports[2].get(), 9.0);
     }
 }

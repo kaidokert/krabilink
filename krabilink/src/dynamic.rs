@@ -31,6 +31,21 @@ pub enum LoadErr {
     PortConnectionError(PortId, String),
 }
 
+impl core::fmt::Display for LoadErr {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::JsonError(e) => write!(f, "JSON error: {}", e),
+            Self::LoadError(n) => write!(f, "load error: expected {} ports", n),
+            Self::UnknownComponent(s) => write!(f, "unknown component: {}", s),
+            Self::ComponentCreateError(s, e) => write!(f, "failed to create {}: {}", s, e),
+            Self::PortTargetNotFound(id, s) => write!(f, "port {:?} target not found: {}", id, s),
+            Self::PortConnectionError(id, s) => write!(f, "port {:?} connection error: {}", id, s),
+        }
+    }
+}
+
+impl std::error::Error for LoadErr {}
+
 impl From<serde_json::Error> for LoadErr {
     fn from(error: serde_json::Error) -> Self {
         Self::JsonError(error)

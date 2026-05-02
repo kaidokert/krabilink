@@ -239,9 +239,10 @@ fn check_for_known_blocks(
                                                     }
                                                 });
                                             if let Some(ref_m) = ref_model {
+                                                let mut found_ref = false;
                                                 for (key, sys) in ref_m.systems.iter() {
-                                                    //log::info!("ref_model: {} [ {} ] ", key, sys.name);
                                                     if key == &ref_p.value {
+                                                        found_ref = true;
                                                         log::info!(
                                                             "found ref_model: {} [ {} ] ",
                                                             key,
@@ -259,6 +260,13 @@ fn check_for_known_blocks(
                                                         }
                                                     }
                                                 }
+                                                if !found_ref {
+                                                    all_blocks_good = false;
+                                                    log::error!("Reference path not found in library: {}", ref_p.value);
+                                                }
+                                            } else {
+                                                all_blocks_good = false;
+                                                log::error!("Unknown reference library: {}", ref_model_key);
                                             }
                                         }
                                     }
