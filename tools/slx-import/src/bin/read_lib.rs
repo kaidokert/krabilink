@@ -287,8 +287,11 @@ fn check_for_known_blocks(
 }
 
 fn load_library_model(filename: String) -> CompleteModel {
-    let matlab = std::env::var("ProgramFiles").unwrap_or("".into());
-    let simulink_blocks_dir = matlab + "/MATLAB/R2024b/toolbox/simulink/blocks/library";
+    let matlab_root = std::env::var("MATLAB_ROOT").unwrap_or_else(|_| {
+        let pf = std::env::var("ProgramFiles").unwrap_or_default();
+        pf + "/MATLAB/R2024b"
+    });
+    let simulink_blocks_dir = matlab_root + "/toolbox/simulink/blocks/library";
     let slx_file_path = simulink_blocks_dir.clone() + "/" + &filename + ".slx";
     let simulink_model = load_library(filename.to_string(), slx_file_path);
     simulink_model.expect(&format!("Failed to load library model: {}", filename))

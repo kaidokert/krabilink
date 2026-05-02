@@ -580,16 +580,21 @@ fn main() -> Result<(), String> {
 
     log::info!("Starting ");
 
-    let user_profile = std::env::var("USERPROFILE").unwrap_or("".into());
+    let matlab_root = std::env::var("MATLAB_ROOT").unwrap_or_else(|_| {
+        let pf = std::env::var("ProgramFiles").unwrap_or_default();
+        pf + "/MATLAB/R2024b"
+    });
     let mut files: Vec<String> = vec![];
     let mut zip_files: Vec<String> = vec![];
 
-    let matlab = std::env::var("ProgramFiles").unwrap_or("".into());
-    let simulink_blocks_dir = matlab + "/MATLAB/R2024b/toolbox/simulink/blocks/library";
+    let simulink_blocks_dir = matlab_root + "/toolbox/simulink/blocks/library";
 
     if args.file.is_none() {
         log::info!("Starting dir ");
-        let default_dir = user_profile + "/Documents/MATLAB/Examples/R2024b";
+        let default_dir = std::env::var("MATLAB_EXAMPLES").unwrap_or_else(|_| {
+            let user_profile = std::env::var("USERPROFILE").unwrap_or_default();
+            user_profile + "/Documents/MATLAB/Examples/R2024b"
+        });
         let the_dir = args.root_dir.unwrap_or(default_dir);
         log::debug!("Walking dir: {}", the_dir);
         for entry in WalkDir::new(the_dir) {
